@@ -4,13 +4,14 @@ import argparse
 import glob
 import os
 import sys
-
+import time
 from fireredasr.models.fireredasr import FireRedAsr
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--asr_type', type=str, required=True, choices=["aed", "llm"])
+parser.add_argument('--asr_type', type=str, required=True, choices=["aed", "llm", "aed_tensorrt"])
 parser.add_argument('--model_dir', type=str, required=True)
+parser.add_argument("--tensorrt_model_dir", type=str, default=None, help="directory of tensorrt engines")
 
 # Input / Output
 parser.add_argument("--wav_path", type=str)
@@ -40,10 +41,37 @@ def main(args):
     wavs = get_wav_info(args)
     fout = open(args.output, "w") if args.output else None
 
-    model = FireRedAsr.from_pretrained(args.asr_type, args.model_dir)
+    model = FireRedAsr.from_pretrained(args.asr_type, args.model_dir, args.tensorrt_model_dir)
+
+    # Warm-up phase to stabilize inference
+    # if len(wavs) > 0:
+    #     print("Running warm-up inferences...")
+    #     warmup_uttid = [wavs[0][0]]
+    #     warmup_wav_path = [wavs[0][1]]
+    #     for _ in range(5):  # Number of warm-up runs
+    #         _ = model.transcribe(
+    #             warmup_uttid,
+    #             warmup_wav_path,
+    #             {
+    #                 "use_gpu": args.use_gpu,
+    #                 "beam_size": args.beam_size,
+    #                 "nbest": args.nbest,
+    #                 "decode_max_len": args.decode_max_len,
+    #                 "softmax_smoothing": args.softmax_smoothing,
+    #                 "aed_length_penalty": args.aed_length_penalty,
+    #                 "eos_penalty": args.eos_penalty,
+    #                 "decode_min_len": args.decode_min_len,
+    #                 "repetition_penalty": args.repetition_penalty,
+    #                 "llm_length_penalty": args.llm_length_penalty,
+    #                 "temperature": args.temperature
+    #             }
+    #         )
+    #     print("Warm-up finished.")
 
     batch_uttid = []
     batch_wav_path = []
+    start_time = time.time()
+    # wavs = wavs * 100
     for i, wav in enumerate(wavs):
         uttid, wav_path = wav
         batch_uttid.append(uttid)
@@ -77,6 +105,10 @@ def main(args):
         batch_uttid = []
         batch_wav_path = []
 
+    end_time = time.time()
+    print(f"Time taken: {end_time - start_time} seconds")
+    with open(args.output + ".time", "w") as f:
+        f.write(f"{end_time - start_time} seconds")
 
 def get_wav_info(args):
     """

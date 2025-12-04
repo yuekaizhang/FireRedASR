@@ -142,49 +142,7 @@ def load_fireredasr_aed_model(model_path):
     package = torch.load(model_path, map_location=lambda storage, loc: storage, weights_only=False)
     print("model args:", package["args"])
     model = FireRedAsrAed.from_args(package["args"])
-
-    # The model architecture has been refactored to align with Whisper's style.
-    # This requires remapping the state dict keys from the original checkpoint for the decoder only.
-    original_state_dict = package["model_state_dict"]
-    new_state_dict = {}
-    for key, value in original_state_dict.items():
-        if key == "decoder.positional_encoding.pe":
-            # Manually remap the sinusoidal positional encoding buffer to the new learnable parameter.
-            # The original buffer has a shape of (1, max_len, d_model), so we squeeze it.
-            new_state_dict["decoder.positional_embedding"] = value.squeeze(0)
-            continue
-
-        if key.startswith("decoder."):
-            new_key = key
-            # Top-level decoder module renames
-            new_key = new_key.replace("decoder.tgt_word_emb.", "decoder.token_embedding.")
-            new_key = new_key.replace("decoder.layer_stack.", "decoder.blocks.")
-            new_key = new_key.replace("decoder.layer_norm_out.", "decoder.ln.")
-            new_key = new_key.replace("decoder.tgt_word_prj.", "decoder.output_projection.")
-
-            # ResidualAttentionBlock internal layer renames
-            new_key = new_key.replace(".self_attn_norm.", ".attn_ln.")
-            new_key = new_key.replace(".self_attn.", ".attn.")
-            new_key = new_key.replace(".cross_attn_norm.", ".cross_attn_ln.")
-            new_key = new_key.replace(".mlp_norm.", ".mlp_ln.")
-
-            # Inlined PositionwiseFeedForward renames
-            new_key = new_key.replace(".mlp.w_1.", ".mlp.0.")
-            new_key = new_key.replace(".mlp.w_2.", ".mlp.2.")
-
-            # MultiHeadAttention submodule renames (from old custom MHA to whisper.model.MultiHeadAttention)
-            new_key = new_key.replace(".w_qs.", ".query.")
-            new_key = new_key.replace(".w_ks.", ".key.")
-            new_key = new_key.replace(".w_vs.", ".value.")
-            new_key = new_key.replace(".fc.", ".out.")
-
-            new_state_dict[new_key] = value
-        else:
-            # Keep encoder keys unchanged
-            new_state_dict[key] = value
-    # delete decoder related keys
-    new_state_dict = {k: v for k, v in new_state_dict.items() if not k.startswith("decoder.")}
-    model.load_state_dict(new_state_dict, strict=False)
+    model.load_state_dict(package["model_state_dict"], strict=True)
     return model
 
 
