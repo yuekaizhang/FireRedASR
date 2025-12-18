@@ -15,11 +15,9 @@ class TritonPythonModel:
     def initialize(self, args):
         self.model_config = json.loads(args['model_config'])
         
-        # self.engine_dir = self.model_config['parameters']['engine_dir']['string_value']
-        
-        self.engine_dir = "/workspace_yuekai/asr/FireRedASR/examples/FireRedASR-AED-L-TensorRT"
-        self.checkpoint_dir = "/workspace_yuekai/asr/FireRedASR/examples/pretrained_models/FireRedASR-AED-L"
-            
+        self.engine_dir = self.model_config['parameters']['engine_dir']['string_value']
+        self.checkpoint_dir = self.model_config['parameters']['checkpoint_dir']['string_value']
+    
         self.device_id = int(args["model_instance_device_id"])
         self.device = torch.device(f"cuda:{self.device_id}")
 

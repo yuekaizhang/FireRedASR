@@ -88,8 +88,6 @@ class ChineseCharEnglishSpmTokenizer:
                 print("Please add <space> to your dict, or it will be <unk>")
 
     def tokenize(self, text, replace_punc=True):
-        #if text == "":
-        #    logging.info(f"empty text")
         text = text.upper()
         tokens = []
         if replace_punc:

@@ -45,7 +45,6 @@ class ASRFeatExtractor:
         return feats_pad, lengths, durs
 
     def pad_feat(self, xs, pad_value):
-        # type: (List[Tensor], int) -> Tensor
         n_batch = len(xs)
         max_len = max([xs[i].size(0) for i in range(n_batch)])
         pad = torch.ones(n_batch, max_len, *xs[0].size()[1:]).to(xs[0].device).to(xs[0].dtype).fill_(pad_value)
@@ -58,8 +57,6 @@ class CMVN:
     def __init__(self, kaldi_cmvn_file):
         self.dim, self.means, self.inverse_std_variences = \
             self.read_kaldi_cmvn(kaldi_cmvn_file)
-        # self.means = torch.tensor(self.means).to(torch.float32).to(torch.device('cuda', 0))
-        # self.inverse_std_variences = torch.tensor(self.inverse_std_variences).to(torch.float32).to(torch.device('cuda', 0))
 
     def __call__(self, x, is_train=False):
         assert x.shape[-1] == self.dim, "CMVN dim mismatch"

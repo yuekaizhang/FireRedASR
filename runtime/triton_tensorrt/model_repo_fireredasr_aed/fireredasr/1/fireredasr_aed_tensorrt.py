@@ -8,7 +8,6 @@ from tensorrt_llm.runtime import ModelConfig, SamplingConfig, GenerationSession,
 from tensorrt_llm.bindings import KVCacheType
 from tensorrt_llm._utils import str_dtype_to_trt, trt_dtype_to_torch
 from collections import OrderedDict
-from cuda.bindings import runtime as cudart
 
 def read_config(component, engine_dir):
     config_path = engine_dir / component / 'config.json'
@@ -27,7 +26,6 @@ class TrtEncoder:
 
     def get_session(self, engine_path):
         torch.cuda.set_device(self.device_id)
-        cudart.cudaSetDevice(self.device_id)
         with open(engine_path, 'rb') as f:
             engine_buffer = f.read()
         session = Session.from_serialized_engine(engine_buffer)
@@ -107,7 +105,6 @@ class TrtLlmDecoder:
 
     def get_session(self, engine_dir, runtime_mapping, debug_mode=False):
         torch.cuda.set_device(self.device_id)
-        cudart.cudaSetDevice(self.device_id)
         serialize_path = engine_dir / 'decoder' / 'rank0.engine'
         with open(serialize_path, "rb") as f:
             decoder_engine_buffer = f.read()
@@ -163,7 +160,7 @@ class TrtLlmDecoder:
             batch_size, decoder_max_input_length + max_new_tokens,
             encoder_max_input_length
         ]).int().to(f'cuda:{self.device_id}')
-        # generation config
+
         sampling_config = SamplingConfig(end_id=self.eos_id,
                                          pad_id=self.pad_id,
                                          num_beams=num_beams,
@@ -211,11 +208,8 @@ class FireRedAsrAedTensorRT(torch.nn.Module):
         self.encoder = TrtEncoder(encoder_engine_path, device_id=device_id)
 
         self.decoder_engine_dir_name = "trt_engine_float16"
-        # self.decoder_engine_dir_name = "trt_engine_float32"
         decoder_engine_dir = Path(os.path.join(tensorrt_model_dir, self.decoder_engine_dir_name))
 
-        
-        # Get special token IDs from tokenizer
         sos_id = tokenizer.dict.word2id["<sos>"]
         eos_id = tokenizer.dict.word2id["<eos>"]
         pad_id = tokenizer.dict.word2id["<pad>"]
@@ -260,8 +254,7 @@ class FireRedAsrAedTensorRT(torch.nn.Module):
             num_beams=beam_size,
             length_penalty=length_penalty
         )
-        
-        # Format the output tensor back to the expected structure
+
         if nbest > beam_size:
             nbest = beam_size
         
