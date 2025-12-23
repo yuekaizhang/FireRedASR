@@ -111,18 +111,14 @@ class FireRedAsrLlm(nn.Module):
             valid_embeds = inputs_embeds[i][mask]
             prompts_list.append({"prompt_embeds": valid_embeds})
 
-        # sampling_params = SamplingParams(
-        #     temperature=temperature,
-        #     max_tokens=max_new_tokens,
-        #     repetition_penalty=repetition_penalty,
-        #     min_tokens=decode_min_len,
-        # )
-        # if beam_size > 1:
-        #     sampling_params.use_beam_search = True
-        #     sampling_params.best_of = beam_size
+        sampling_params = SamplingParams(
+            # temperature=0.0,
+            # repetition_penalty=1.0,
+            top_p=0.01,
+        )
 
-        # outputs = self.llm.generate(prompts_list, sampling_params, use_tqdm=False)
-        outputs = self.llm.generate(prompts_list)
+        outputs = self.llm.generate(prompts_list, sampling_params, use_tqdm=False)
+
         generated_texts = [output.outputs[0].text for output in outputs]
 
         return generated_texts

@@ -10,23 +10,29 @@ model_dir=$PWD/pretrained_models/FireRedASR-LLM-L
 wavs="--wav_path wav/BAC009S0764W0121.wav"
 wavs="--wav_paths wav/BAC009S0764W0121.wav wav/IT0011W0001.wav wav/TEST_NET_Y0000000000_-KTKHdZ2fb8_S00000.wav wav/TEST_MEETING_T0000000001_S00000.wav"
 wavs="--wav_dir wav/"
-wavs="--wav_scp wav/wav.scp"
 
+wavs="--wav_scp wav/wav.scp"
+ref="wav/text"
 out="out/llm-l-asr.txt"
 
+wavs="--wav_scp wav_aishell_100/wav.scp.short"
+ref="wav_aishell_100/trans.txt.short"
+out="out/llm-sampling-l-asr-aishell-200-batch-4-beam-3-fp16-flashattn.txt"
+
 decode_args="
---batch_size 1 --beam_size 3 --decode_max_len 0 --decode_min_len 0
+--batch_size 4 --beam_size 3 --decode_max_len 0 --decode_min_len 0
 --repetition_penalty 3.0 --llm_length_penalty 1.0 --temperature 1.0
 "
 
 mkdir -p $(dirname $out)
 set -x
 
+# CUDA_VISIBLE_DEVICES=0 \
+# speech2text.py --asr_type "llm" --model_dir $model_dir $decode_args $wavs --output $out
 
 CUDA_VISIBLE_DEVICES=0 \
-speech2text.py --asr_type "llm" --model_dir $model_dir $decode_args $wavs --output $out
+uv run python fireredasr/speech2text.py --asr_type "vllm" --model_dir $model_dir $decode_args $wavs --output $out
 
 
-ref="wav/text"
 wer.py --print_sentence_wer 1 --do_tn 0 --rm_special 1 --ref $ref --hyp $out > $out.wer 2>&1
 tail -n8 $out.wer

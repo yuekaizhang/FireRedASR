@@ -4,12 +4,12 @@ import argparse
 import glob
 import os
 import sys
-
+import time
 from fireredasr.models.fireredasr import FireRedAsr
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--asr_type', type=str, required=True, choices=["aed", "llm"])
+parser.add_argument('--asr_type', type=str, required=True, choices=["aed", "llm", "vllm"])
 parser.add_argument('--model_dir', type=str, required=True)
 
 # Input / Output
@@ -44,6 +44,7 @@ def main(args):
 
     batch_uttid = []
     batch_wav_path = []
+    start_time = time.time()
     for i, wav in enumerate(wavs):
         uttid, wav_path = wav
         batch_uttid.append(uttid)
@@ -76,7 +77,11 @@ def main(args):
 
         batch_uttid = []
         batch_wav_path = []
-
+    end_time = time.time()
+    print(f"Time taken: {end_time - start_time} seconds")
+    # write the time taken to a file
+    with open(args.output.replace(".txt", "_time.txt"), "w") as f:
+        f.write(f"{end_time - start_time}")
 
 def get_wav_info(args):
     """
